@@ -5,7 +5,8 @@ import (
 	"sync"
 )
 
-// FanOut receives a single channel and multiplexes to N channels.
+// Fan-out receives a channel and multiplexes it into N channels. N goroutines
+// will be started to read from the input and write to the output channels.
 func FanOut[T any](ctx context.Context, input <-chan T, n int) []<-chan T {
 	outputs := make([]<-chan T, n)
 
@@ -31,7 +32,9 @@ func FanOut[T any](ctx context.Context, input <-chan T, n int) []<-chan T {
 	return outputs
 }
 
-// FanIn receives multiples channels and returns one that will receive all data.
+// FanIn receives multiple channels and returns a single channel. N+1 goroutines
+// will be started. Where N is equal to the length of input channels and another
+// channel to wait goroutines to finish.
 func FanIn[T any](ctx context.Context, inputs ...<-chan T) <-chan T {
 	out := make(chan T)
 	wg := sync.WaitGroup{}
@@ -62,8 +65,8 @@ func FanIn[T any](ctx context.Context, inputs ...<-chan T) <-chan T {
 	return out
 }
 
-// Map receives a input channel, apply the mapFn function and write to the
-// output channel.
+// Map start a new goroutine will be created to receive input data, apply the
+// map function and send to the output channel.
 func Map[T1, T2 any](ctx context.Context, input <-chan T1, mapFn func(T1) T2) <-chan T2 {
 	out := make(chan T2)
 
@@ -85,8 +88,8 @@ func Map[T1, T2 any](ctx context.Context, input <-chan T1, mapFn func(T1) T2) <-
 	return out
 }
 
-// Filter receives a input channel, apply the filter function and write matches
-// to the output channel.
+// Filter start a new goroutine and returns a channel that only returns data
+// thats the filter function returns `true`.
 func Filter[T any](ctx context.Context, input <-chan T, filter func(T) bool) <-chan T {
 	out := make(chan T)
 
